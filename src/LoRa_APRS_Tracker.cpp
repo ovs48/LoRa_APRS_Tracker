@@ -74,6 +74,18 @@ void setup() {
   powerManagement.activateGPS();
   powerManagement.activateMeasurement();
 #endif
+#ifdef TTGO_V1_6
+  Wire.begin(SDA, SCL);
+  if (!powerManagement.begin(Wire)) {
+    logPrintlnI("AXP192 init done!");
+  } else {
+    logPrintlnE("AXP192 init failed!");
+  }
+  powerManagement.activateLoRa();
+  powerManagement.activateOLED();
+  powerManagement.activateGPS();
+  powerManagement.activateMeasurement();
+#endif
 
   delay(500);
   logPrintlnI("LoRa APRS Tracker by OE5BPA (Peter Buchegger)");
@@ -166,6 +178,15 @@ void loop() {
   static String batteryVoltage       = "";
   static String batteryChargeCurrent = "";
 #ifdef TTGO_T_Beam_V1_0
+  static unsigned int rate_limit_check_battery = 0;
+  if (!(rate_limit_check_battery++ % 60))
+    BatteryIsConnected = powerManagement.isBatteryConnect();
+  if (BatteryIsConnected) {
+    batteryVoltage       = String(powerManagement.getBatteryVoltage(), 2);
+    batteryChargeCurrent = String(powerManagement.getBatteryChargeDischargeCurrent(), 0);
+  }
+#endif
+#ifdef TTGO_V1_6
   static unsigned int rate_limit_check_battery = 0;
   if (!(rate_limit_check_battery++ % 60))
     BatteryIsConnected = powerManagement.isBatteryConnect();

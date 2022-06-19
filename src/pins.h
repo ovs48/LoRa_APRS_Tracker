@@ -21,4 +21,9 @@
 #define GPS_TX 34
 #endif
 
+#ifdef TTGO_V1_6
+#define GPS_RX 25
+#define GPS_TX 02
+#endif
+
 #endif
