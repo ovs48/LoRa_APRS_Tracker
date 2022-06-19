@@ -4,7 +4,7 @@ We are experimenting on LoRa using cheap TTGO Boards (V2.1-1.6). Unfortunately, 
 
 # LoRa APRS Tracker
 
-The LoRa APRS Tracker will work with very cheap hardware which you can buy from amazon, ebay or aliexpress.
+The LoRa APRS Tracker will work with very cheap hardware which you can buy from Amazon, eBay or AliExpress.
 Try it out and be part of the APRS network.
 
 ![TTGO T-Beam](pics/Tracker.png)
@@ -31,12 +31,12 @@ Keep in mind: you need a 433MHz version!
 The best success is to use PlatformIO (and it is the only platform where I can support you). 
 
 * Go to [PlatformIO](https://platformio.org/) download and install the IDE. 
-* If installed open the IDE, go to the left side and klick on 'extensions' then search for 'PatformIO' and install.
-* When installed click 'the ant head' on the left and choose import the project on the right.
+* If installed open the IDE, go to the left side and click on 'extensions' then search for 'PatformIO' and install.
+* When installed click 'the alien head' on the left and choose import the project on the right.
 * Just open the folder and you can compile the Firmware.
 
 Alternatively, you can install using Visual Studio Code
-* Install Visual Studio Code (if you don't have already)
+* Install [Visual Studio Code](https://code.visualstudio.com/) (if you don't have already)
 * Then, go to "extensions" and search "PlatformIO". Install the extension "PlatformIO IDE".
 * Clone this repository and load it into Visual Studio Code
 * Wait until PlatformIO is done configuring itself
