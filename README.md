@@ -17,8 +17,8 @@ You can use one of the Lora32 boards:
 * TTGO T-Beam V1 (433MHz SX1278)
 * TTGO V2.1-1.6 (433MHz) using an **external GPS module** (Pins can be re-defined at src/pins.h, currently using Pin 25 for RX and Pin 2 for TX)
 
-This boards cost around 30 Euros, they are very cheap but perfect for an LoRa iGate.
-Keep in minde: you need a 433MHz version!
+This boards cost around 20-30 Euros, they are very cheap but perfect for an LoRa iGate.
+Keep in mind: you need a 433MHz version!
 
 ## Compiling and configuration
 
