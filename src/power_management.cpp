@@ -66,7 +66,12 @@ void PowerManagement::deactivateMeasurement() {
 
 // cppcheck-suppress unusedFunction
 double PowerManagement::getBatteryVoltage() {
+  #ifndef TTGO_V1_6
   return axp.getBattVoltage() / 1000.0;
+  #else
+  return (float)(analogRead(35)) / 4095*2*3.3*1.05;
+  //Reads battery voltage via ADC, source: https://gist.github.com/jenschr/dfc765cb9404beb6333a8ea30d2e78a1 with slight modification
+  #endif
 }
 
 // cppcheck-suppress unusedFunction
