@@ -1,6 +1,6 @@
 #include <APRS-Decoder.h>
 #include <Arduino.h>
-#include <LoRa.h>
+#include <RadioLib.h>
 #include <OneButton.h>
 #include <TimeLib.h>
 #include <TinyGPS++.h>
@@ -43,6 +43,11 @@ String padding(unsigned int number, unsigned int width);
 static bool send_update          = true;
 static bool display_toggle_value = true;
 
+#ifndef M_SX1268
+SX1278 LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST);
+#else
+SX1268 LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST, LORA_BUSY);
+#endif
 static void handle_tx_click() {
   send_update = true;
 }
@@ -62,6 +67,7 @@ static void toggle_display() {
 
 // cppcheck-suppress unusedFunction
 void setup() {
+  //gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
   Serial.begin(115200);
 
 #ifdef TTGO_T_Beam_V1_0
@@ -95,7 +101,7 @@ void setup() {
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Version: " VERSION);
   setup_display();
 
-  show_display("OE5BPA", "LoRa APRS Tracker", "by Peter Buchegger", "Version: " VERSION, 2000);
+  show_display("DH2LM", "LoRa APRS Tracker", "using RadioLib", "Version: " VERSION, 2000);
   load_config();
 
   setup_gps();
@@ -309,7 +315,7 @@ void loop() {
       aprsmsg += BeaconMan.getCurrentBeaconConfig()->message;
     }
     if (BatteryIsConnected) {
-      aprsmsg += " -  _Bat.: " + batteryVoltage + "V - Cur.: " + batteryChargeCurrent + "mA";
+      aprsmsg += " -  _Bat.: " + batteryVoltage + "V";
     }
 
     if (BeaconMan.getCurrentBeaconConfig()->enhance_precision) {
@@ -318,7 +324,8 @@ void loop() {
 
     msg.getBody()->setData(aprsmsg);
     String data = msg.encode();
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Loop", "%s", data);
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Loop", "%s", data.c_str());
+    delay(10);
     show_display("<< TX >>", data);
 
     if (Config.ptt.active) {
@@ -326,14 +333,31 @@ void loop() {
       delay(Config.ptt.start_delay);
     }
 
-    LoRa.beginPacket();
-    // Header:
-    LoRa.write('<');
-    LoRa.write(0xFF);
-    LoRa.write(0x01);
-    // APRS Data:
-    LoRa.write((const uint8_t *)data.c_str(), data.length());
-    LoRa.endPacket();
+    // LoRa.beginPacket();
+    // // Header:
+    // LoRa.write('<');
+    // LoRa.write(0xFF);
+    // LoRa.write(0x01);
+    // // APRS Data:
+    // LoRa.write((const uint8_t *)data.c_str(), data.length());
+    // LoRa.endPacket();
+
+    data = "<\xff\x01" + data;
+
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "TX", "Attempting to TX string \"%s\" containing %d Bytes...", data.c_str(), data.length());
+
+    int state = LoRa.startTransmit(data.c_str());
+    if (state != RADIOLIB_ERR_NONE) {
+      logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "TX", "startTX failed, threw code %d", state);
+    }
+    else
+    {
+      logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "TX", "startTX success!");
+    }
+
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "TX", "Estimated TX Time: %d ms.", (int)ceil((float)LoRa.getTimeOnAir(data.length())/1000.0));
+    //Hold the program while TXing..
+    delay((int)ceil((float)LoRa.getTimeOnAir(data.length())/1000.0));
 
     if (BeaconMan.getCurrentBeaconConfig()->smart_beacon.active) {
       lastTxLat       = gps.location.lat();
@@ -400,25 +424,35 @@ void load_config() {
 }
 
 void setup_lora() {
-  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Set SPI pins!");
-  SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
+  // logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Set SPI pins!");
+  // SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Set LoRa pins!");
-  LoRa.setPins(LORA_CS, LORA_RST, LORA_IRQ);
+  LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST);
 
   long freq = Config.lora.frequencyTx;
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "frequency: %d", freq);
-  if (!LoRa.begin(freq)) {
-    logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed!");
+
+  //#ifndef M_SX1268
+  int state = LoRa.begin((float)freq / 1000000.0);
+  //#else
+  //int state = LoRa.begin(Config.lora.codingRate4, 0x12, 8, 0, false);
+  //#endif
+
+
+  if (state != RADIOLIB_ERR_NONE) {
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "LoRa", "Starting LoRa failed, threw Code %d!", state);
     show_display("ERROR", "Starting LoRa failed!");
     while (true) {
     }
   }
-  LoRa.setSpreadingFactor(Config.lora.spreadingFactor);
-  LoRa.setSignalBandwidth(Config.lora.signalBandwidth);
-  LoRa.setCodingRate4(Config.lora.codingRate4);
-  LoRa.enableCrc();
 
-  LoRa.setTxPower(Config.lora.power);
+  LoRa.setSpreadingFactor(Config.lora.spreadingFactor);
+  LoRa.setBandwidth(Config.lora.signalBandwidth);
+  LoRa.setCodingRate(Config.lora.codingRate4);
+  LoRa.setCRC(true);
+
+  LoRa.setOutputPower(Config.lora.power);
+
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "LoRa init done!");
   show_display("INFO", "LoRa init done!", 2000);
 }

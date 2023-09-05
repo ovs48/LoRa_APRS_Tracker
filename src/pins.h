@@ -27,5 +27,10 @@
 #define GPS_TX 15
 #endif
 
+#ifdef M_SX1268
+#define GPS_RX 13
+#define GPS_TX 15
+#endif
+
 
 #endif

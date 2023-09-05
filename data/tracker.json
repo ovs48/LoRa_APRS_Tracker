@@ -2,21 +2,21 @@
 	"debug": false,
 	"beacons": [
 		{
-			"callsign": "NOCALL-7",
+			"callsign": "DH2LM-7",
 			"path": "WIDE1-1",
-			"message": "LoRa Tracker",
+			"message": "Testing RadioLib",
 			"timeout": 1,
-			"symbol": "[",
+			"symbol": ">",
 			"overlay": "/",
 			"smart_beacon": {
 				"active": true,
 				"turn_min": 25,
-				"slow_rate": 300,
-				"slow_speed": 10,
+				"slow_rate": 120,
+				"slow_speed": 30,
 				"fast_rate": 60,
-				"fast_speed": 100,
-				"min_tx_dist": 100,
-				"min_bcn": 5
+				"fast_speed": 50,
+				"min_tx_dist": 10,
+				"min_bcn": 1
 			},
 			"enhance_precision": true
 		}
