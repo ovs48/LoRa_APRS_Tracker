@@ -13,10 +13,11 @@ Adafruit_SSD1306 display(128, 64, &Wire, OLED_RST);
 
 // cppcheck-suppress unusedFunction
 void setup_display() {
-  pinMode(OLED_RST, OUTPUT);
-  digitalWrite(OLED_RST, LOW);
-  delay(20);
-  digitalWrite(OLED_RST, HIGH);
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "SSD1306", "Initializing Display...");
+  // pinMode(OLED_RST, OUTPUT);
+  // digitalWrite(OLED_RST, LOW);
+  // delay(20);
+  // digitalWrite(OLED_RST, HIGH);
 
   Wire.begin(OLED_SDA, OLED_SCL);
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3c, false, false)) {
