@@ -44,8 +44,10 @@ static bool send_update          = true;
 static bool display_toggle_value = true;
 
 #ifndef M_SX1268
+//SX1278 Tested -- WORKS PRETTY WELL!
 SX1278 LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST);
 #else
+//Defines SX1268 Module -- NOT TESTED!!
 SX1268 LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST, LORA_BUSY);
 #endif
 static void handle_tx_click() {
@@ -324,6 +326,7 @@ void loop() {
 
     msg.getBody()->setData(aprsmsg);
     String data = msg.encode();
+    //Changed to c_str, since %s does not handle String that well..
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_DEBUG, "Loop", "%s", data.c_str());
     delay(10);
     show_display("<< TX >>", data);
@@ -342,11 +345,16 @@ void loop() {
     // LoRa.write((const uint8_t *)data.c_str(), data.length());
     // LoRa.endPacket();
 
+    //Put needed data in front of APRS data - see above
     data = "<\xff\x01" + data;
-
+    //Changed to c_str, since %s does not handle String that well..
+    //Spit out message to be sent, for debug purposes
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "TX", "Attempting to TX string \"%s\" containing %d Bytes...", data.c_str(), data.length());
 
+    //Send data
     int state = LoRa.startTransmit(data.c_str());
+
+    //Check if TX is successful..
     if (state != RADIOLIB_ERR_NONE) {
       logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "TX", "startTX failed, threw code %d", state);
     }
