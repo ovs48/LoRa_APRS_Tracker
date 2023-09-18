@@ -34,6 +34,7 @@ void setup_display() {
   display.ssd1306_command(SSD1306_SETCONTRAST);
   display.ssd1306_command(1);
   display.display();
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "SSD1306", "Done!");
 }
 
 // cppcheck-suppress unusedFunction

@@ -1,4 +1,4 @@
-#include <SPIFFS.h>
+#include<LittleFS.h>
 #include <logger.h>
 
 #ifndef CPPCHECK
@@ -10,10 +10,10 @@
 extern logging::Logger logger;
 
 ConfigurationManagement::ConfigurationManagement(String FilePath) : mFilePath(FilePath) {
-  if (!SPIFFS.begin(true)) {
+  if (!LittleFS.begin()) {
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Configuration", "Mounting SPIFFS was not possible. Trying to format SPIFFS...");
-    SPIFFS.format();
-    if (!SPIFFS.begin()) {
+    LittleFS.format();
+    if (!LittleFS.begin()) {
       logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Configuration", "Formatting SPIFFS was not okay!");
     }
   }
@@ -21,12 +21,18 @@ ConfigurationManagement::ConfigurationManagement(String FilePath) : mFilePath(Fi
 
 // cppcheck-suppress unusedFunction
 Configuration ConfigurationManagement::readConfiguration() {
-  File file = SPIFFS.open(mFilePath);
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Configuration", "Trying to open Config...");
+  File file = LittleFS.open(mFilePath, "r");
   if (!file) {
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Configuration", "Failed to open file for reading...");
     return Configuration();
   }
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Probable Config Opened!");
+  delay(100);
   DynamicJsonDocument  data(2048);
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Now Deserializing...");
+    delay(100);
+
   DeserializationError error = deserializeJson(data, file);
 
   if (error) {
@@ -89,7 +95,7 @@ Configuration ConfigurationManagement::readConfiguration() {
 
 // cppcheck-suppress unusedFunction
 void ConfigurationManagement::writeConfiguration(Configuration conf) {
-  File file = SPIFFS.open(mFilePath, "w");
+  File file = LittleFS.open(mFilePath, "w");
   if (!file) {
     logger.log(logging::LoggerLevel::LOGGER_LEVEL_ERROR, "Configuration", "Failed to open file for writing...");
     return;

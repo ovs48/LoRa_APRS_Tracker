@@ -4,7 +4,12 @@
 #include <OneButton.h>
 #include <TimeLib.h>
 #include <TinyGPS++.h>
+#ifdef ESP8266
+#include<ESP8266WiFi.h>
+#include<SPI.h>
+#else
 #include <WiFi.h>
+#endif
 #include <logger.h>
 
 #include "BeaconManager.h"
@@ -23,7 +28,11 @@ BeaconManager BeaconMan;
 PowerManagement powerManagement;
 OneButton       userButton = OneButton(BUTTON_PIN, true, true);
 
+#ifdef ESP8266
+HardwareSerial ss(0);
+#else
 HardwareSerial ss(1);
+#endif
 TinyGPSPlus    gps;
 
 void setup_gps();
@@ -70,7 +79,7 @@ static void toggle_display() {
 // cppcheck-suppress unusedFunction
 void setup() {
   //gpio_install_isr_service(ESP_INTR_FLAG_LEVEL1 | ESP_INTR_FLAG_IRAM);
-  Serial.begin(115200);
+  Serial.begin(9600);
 
 #ifdef TTGO_T_Beam_V1_0
   Wire.begin(SDA, SCL);
@@ -106,7 +115,11 @@ void setup() {
   show_display("DH2LM", "LoRa APRS Tracker", "using RadioLib", "Version: " VERSION, 2000);
   load_config();
 
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Setting up GPS...");
+  delay(100);
   setup_gps();
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Main", "Setting up LoRa...");
+  delay(100);
   setup_lora();
 
   if (Config.ptt.active) {
@@ -116,7 +129,9 @@ void setup() {
 
   // make sure wifi and bt is off as we don't need it:
   WiFi.mode(WIFI_OFF);
+  #ifndef ESP8266
   btStop();
+  #endif
 
   if (Config.button.tx) {
     // attach TX action to user button (defined by BUTTON_PIN)
@@ -157,6 +172,7 @@ void loop() {
   static bool   gps_loc_update_valid = false;
   static time_t nextBeaconTimeStamp  = -1;
 
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Loop", "GPS fix state check..");
   if (gps_loc_update != gps_loc_update_valid) {
     gps_loc_update_valid = gps_loc_update;
 
@@ -199,6 +215,8 @@ void loop() {
   static bool   BatteryIsConnected   = false;
   static String batteryVoltage       = "";
   static String batteryChargeCurrent = "";
+
+  logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "Loop", "Voltage check..");
 #ifdef TTGO_T_Beam_V1_0
   static unsigned int rate_limit_check_battery = 0;
   if (!(rate_limit_check_battery++ % 60))
@@ -219,11 +237,13 @@ void loop() {
   }
 #endif
 
+#ifndef ESP8266
   if (powerManagement.isChargeing()) {
     powerManagement.enableChgLed();
   } else {
     powerManagement.disableChgLed();
   }
+#endif
 
   if (!send_update && gps_loc_update && BeaconMan.getCurrentBeaconConfig()->smart_beacon.active) {
     uint32_t lastTx = millis() - lastTxTime;
@@ -241,7 +261,7 @@ void loop() {
       // Get headings and heading delta
       double headingDelta = abs(previousHeading - currentHeading);
 
-      if (lastTx > BeaconMan.getCurrentBeaconConfig()->smart_beacon.min_bcn * 1000) {
+      if (lastTx > (uint32_t)(BeaconMan.getCurrentBeaconConfig()->smart_beacon.min_bcn * 1000)) {
         // Check for heading more than 25 degrees
         if (headingDelta > BeaconMan.getCurrentBeaconConfig()->smart_beacon.turn_min && lastTxdistance > BeaconMan.getCurrentBeaconConfig()->smart_beacon.min_tx_dist) {
           send_update = true;
@@ -433,7 +453,9 @@ void load_config() {
 
 void setup_lora() {
   // logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Set SPI pins!");
-  // SPI.begin(LORA_SCK, LORA_MISO, LORA_MOSI, LORA_CS);
+  #ifdef ESP8266
+  SPI.begin();
+  #endif
   logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "LoRa", "Set LoRa pins!");
   LoRa = new Module(LORA_CS, LORA_IRQ, LORA_RST);
 
@@ -466,7 +488,16 @@ void setup_lora() {
 }
 
 void setup_gps() {
+  #ifdef ESP8266
+  //For ESP8266, TX is GPIO 1 and RX is GPIO 3
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "GPS Setup", "Setting up Serial port..!");
+      delay(100);
+  ss = Serial;
+    logger.log(logging::LoggerLevel::LOGGER_LEVEL_INFO, "GPS Setup", "Serial port set up!");
+      delay(100);
+  #else
   ss.begin(9600, SERIAL_8N1, GPS_TX, GPS_RX);
+  #endif
 }
 
 char *s_min_nn(uint32_t min_nnnnn, int high_precision) {
